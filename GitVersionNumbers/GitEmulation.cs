@@ -70,6 +70,7 @@ namespace GitVersionNumbers
             this.GitLog();
             this.GitDescribe();
             this.GitBranch();
+            this.GitModifications();
             return this.gi;
         }
 
@@ -104,12 +105,27 @@ namespace GitVersionNumbers
         /// </summary>
         private void GitDescribe()
         {
-            // for info on how to setup describe see git tag -a
-            string info = this.ExecuteCommand("git describe --tags");
+            string info = this.ExecuteCommand("git log | grep \"^commit\" | wc -l");
+            int totalCommitNumber = int.Parse(info.Trim());
+
+            this.gi.Version = "0.0.0." + totalCommitNumber.ToString();
+            info = this.ExecuteCommand("git describe --tags --long --match [0-9].[0-9].[0-9]");
             string[] infoSplit = info.Split(new char[] { '|', '-', ',', '\n' });
             if (infoSplit.Count() >= 2)
             {
                 this.gi.Version = infoSplit[0].ToString() + "." + infoSplit[1].ToString();
+            }
+
+            info = this.ExecuteCommand("git describe --tags --long --match CN*");
+            infoSplit = info.Split(new char[] { '|', '-', ',', '\n' });
+            if (infoSplit.Count() >= 2)
+            {
+                int commitNumber = int.Parse(infoSplit[0].Replace("CN", "")) + int.Parse(infoSplit[1]);
+                this.gi.CommitNumber = commitNumber.ToString();
+            }
+            else
+            {
+                this.gi.CommitNumber = totalCommitNumber.ToString();
             }
         }
 
@@ -127,6 +143,15 @@ namespace GitVersionNumbers
                     this.gi.BranchName = str.Replace("*", string.Empty).Trim();
                 }
             }
+        }
+
+        /// <summary>
+        /// Get a value indicating if there are modifications in the current working directory.
+        /// </summary>
+        private void GitModifications()
+        {
+            string info = this.ExecuteCommand("git status --short --untracked-files=no | wc -l");
+            this.gi.Modifications = Convert.ToBoolean(int.Parse(info.Trim()));
         }
 
         /// <summary>

@@ -10,6 +10,7 @@ namespace GitVersionNumbers
     using System.IO;
     using System.Linq;
     using System.Text;
+    using System.Text.RegularExpressions;
 
     /// <summary>
     /// change the assembolyinfo.cs file
@@ -133,15 +134,27 @@ namespace GitVersionNumbers
             }
 
             // replace the tags
-            Console.WriteLine("     GITBRANCHNAME = " + this.GitInfo.BranchName.Trim());
-            Console.WriteLine("     GITCOMMITDATE = " + this.GitInfo.LastCommitDate.ToShortDateString());
-            Console.WriteLine("     GITHASH       = " + this.GitInfo.LastCommitHash.Trim());
-            Console.WriteLine("     GITVERSION    = " + this.GitInfo.Version.Trim());
+            Console.WriteLine("     GITBRANCHNAME   = " + this.GitInfo.BranchName.Trim());
+            Console.WriteLine("     GITCOMMITDATE   = " + this.GitInfo.LastCommitDate.ToShortDateString());
+            Console.WriteLine("     GITHASH         = " + this.GitInfo.LastCommitHash.Trim());
+            Console.WriteLine("     GITVERSION      = " + this.GitInfo.Version.Trim());
+            Console.WriteLine("     GITCOMMITNUMBER = " + this.GitInfo.CommitNumber.Trim());
+            Console.WriteLine("     GITMODS         = " + this.GitInfo.Modifications);
+
+            string pattern = @"\$GITMODS\?(.+):(.+)\$";
+            MatchCollection matches = Regex.Matches(inputContents, pattern);
+            foreach (Match match in matches)
+            {
+                inputContents = inputContents.Replace(
+                    match.Value,
+                    this.GitInfo.Modifications ? match.Groups[1].Value : match.Groups[2].Value);
+            }
 
             inputContents = inputContents.Replace("$GITBRANCHNAME$", this.GitInfo.BranchName.Trim());
             inputContents = inputContents.Replace("$GITCOMMITDATE$", this.GitInfo.LastCommitDate.ToShortDateString());
             inputContents = inputContents.Replace("$GITHASH$", this.GitInfo.LastCommitHash.Trim());
             inputContents = inputContents.Replace("$GITVERSION$", this.GitInfo.Version.Trim());
+            inputContents = inputContents.Replace("$GITCOMMITNUMBER$", this.GitInfo.CommitNumber.Trim());
 
             // write out the changes
             try

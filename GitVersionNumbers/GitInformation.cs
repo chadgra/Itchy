@@ -43,9 +43,24 @@ namespace GitVersionNumbers
         }
 
         /// <summary>
+        /// Gets or sets the commit number.
+        /// </summary>
+        public string CommitNumber
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Gets or sets the git branch name
         /// </summary>
         public string BranchName
+        {
+            get;
+            set;
+        }
+
+        public bool Modifications
         {
             get;
             set;
