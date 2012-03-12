@@ -11,6 +11,7 @@ namespace GitVersionNumbers
     using System.IO;
     using System.Linq;
     using System.Text;
+    using GitSharp;
 
     /// <summary>
     /// Get the information from GIT
@@ -66,7 +67,9 @@ namespace GitVersionNumbers
         /// </summary>
         /// <returns>Git Information values</returns>
         public GitInformation GitInfo()
-        {    
+        {
+            Git.DefaultGitDirectory = this.SolutionDirectory;
+            Git.DefaultRepository = new Repository(this.SolutionDirectory);
             this.GitLog();
             this.GitDescribe();
             this.GitBranch();
@@ -83,21 +86,8 @@ namespace GitVersionNumbers
         /// </summary>
         private void GitLog()
         {
-            // get the log entry
-            // git log -n1 --pretty=raw
-            // -n1 only do the last log entry
-            // pretty is used to determine the format
-            string info = this.ExecuteCommand("git log -n1 --pretty=\"%H | %ad \" --date=rfc");
-            string[] infoSplit = info.Split(new char[] { '|', '-', ',', '\n' });
-            if (infoSplit.Count() >= 3)
-            {
-                this.gi.LastCommitHash = infoSplit[0];
-                DateTime dt;
-                if (DateTime.TryParse(infoSplit[2], out dt))
-                {
-                    this.gi.LastCommitDate = dt;
-                }
-            }
+            this.gi.LastCommitHash = Git.DefaultRepository.Head.CurrentCommit.Hash;
+            this.gi.LastCommitDate = Git.DefaultRepository.Head.CurrentCommit.AuthorDate.DateTime;
         }
 
         /// <summary>
@@ -105,11 +95,10 @@ namespace GitVersionNumbers
         /// </summary>
         private void GitDescribe()
         {
-            string info = this.ExecuteCommand("git log --pretty=oneline | wc -l");
-            int totalCommitNumber = int.Parse(info.Trim());
+            int totalCommitNumber = Git.DefaultRepository.Head.CurrentCommit.Ancestors.Count();
 
             this.gi.Version = "0.0.0." + totalCommitNumber.ToString();
-            info = this.ExecuteCommand("git describe --tags --long --match [0-9].[0-9].[0-9]");
+            string info = this.ExecuteCommand("git describe --tags --long --match [0-9].[0-9].[0-9]");
             string[] infoSplit = info.Split(new char[] { '|', '-', ',', '\n' });
             if (infoSplit.Count() >= 2)
             {
@@ -134,15 +123,7 @@ namespace GitVersionNumbers
         /// </summary>
         private void GitBranch()
         {
-            string info = this.ExecuteCommand("git branch");
-            string[] infoSplit = info.Split(new char[] { '|', '-', ',', '\n' });
-            foreach (string str in infoSplit)
-            {
-                if (str.Contains("*"))
-                {
-                    this.gi.BranchName = str.Replace("*", string.Empty).Trim();
-                }
-            }
+            this.gi.BranchName = Git.DefaultRepository.CurrentBranch.Name;
         }
 
         /// <summary>
@@ -150,8 +131,9 @@ namespace GitVersionNumbers
         /// </summary>
         private void GitModifications()
         {
-            string info = this.ExecuteCommand("git status --short --untracked-files=no | wc -l");
-            this.gi.Modifications = Convert.ToBoolean(int.Parse(info.Trim()));
+            RepositoryStatus status = Git.DefaultRepository.Status;
+            this.gi.Modifications = Convert.ToBoolean(status.Added.Count() + status.Missing.Count() + status.Modified.Count() +
+                status.Removed.Count() + status.Staged.Count());
         }
 
         /// <summary>
