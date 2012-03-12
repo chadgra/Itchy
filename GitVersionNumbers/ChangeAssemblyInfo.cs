@@ -83,13 +83,6 @@ namespace GitVersionNumbers
             string inputFile = string.Empty; // input file
             string backupFile = string.Empty; // backup file name
             string inputContents = string.Empty; // input file contents
-            
-            if (!File.Exists(this.ProjectPath))
-            {
-                Console.WriteLine("Project Does Not Exist " + this.ProjectPath);
-                return;
-                ////throw new Exception("Project Does Not Exist " + this.ProjectPath);
-            }
 
             inputFile = this.ProjectPath + ".git";
             outputFile = this.ProjectPath;

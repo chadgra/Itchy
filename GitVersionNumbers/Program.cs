@@ -77,13 +77,6 @@ namespace GitVersionNumbers
                 ////throw new Exception("Invalid Solution Directory " + solutionDirectory);
             }
 
-            if (!File.Exists(projectDirectory))
-            {
-                Console.WriteLine("Invalid Project Directory " + projectDirectory);
-                return;
-                ////throw new Exception("Invalid Project Directory " + projectDirectory);
-            }
-
             GitVersionNumbers.GitEmulation git = new GitEmulation(solutionDirectory);
             GitInformation info = git.GitInfo();
             if (!String.IsNullOrEmpty(info.Version) && !String.IsNullOrEmpty(info.LastCommitHash))
