@@ -105,7 +105,7 @@ namespace GitVersionNumbers
         /// </summary>
         private void GitDescribe()
         {
-            string info = this.ExecuteCommand("git log | grep \"^commit\" | wc -l");
+            string info = this.ExecuteCommand("git log --pretty=oneline | wc -l");
             int totalCommitNumber = int.Parse(info.Trim());
 
             this.gi.Version = "0.0.0." + totalCommitNumber.ToString();
@@ -181,7 +181,17 @@ namespace GitVersionNumbers
             p.WaitForExit();
 
             string output = p.StandardOutput.ReadToEnd();
-            return output;
+            string[] splits = output.Split(new char[] { '\r', '\n' });
+            output = string.Empty;
+            foreach (string split in splits)
+            {
+                if (!split.StartsWith(@"C:\"))
+                {
+                    output += split + "\r\n";
+                }
+            }
+
+            return output.Trim();
         }
 
         #endregion
