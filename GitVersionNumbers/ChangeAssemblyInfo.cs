@@ -148,6 +148,7 @@ namespace GitVersionNumbers
             inputContents = inputContents.Replace("$GITHASH$", this.GitInfo.LastCommitHash.Trim());
             inputContents = inputContents.Replace("$GITVERSION$", this.GitInfo.Version.Trim());
             inputContents = inputContents.Replace("$GITCOMMITNUMBER$", this.GitInfo.CommitNumber.Trim());
+            inputContents = inputContents.Replace("$GITBUILDDATE$", DateTime.Now.ToShortDateString());
 
             // write out the changes
             try

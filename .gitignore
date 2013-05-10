@@ -1,4 +1,12 @@
 */bin/
 */obj/
-*/*.user
+*/Debug/
+*/Release/
+_ReSharper*/
+*.vsmdi
+*.user
 *.suo
+*.ncb
+*.bak
+*.DotSettings
+Thumbs.db
