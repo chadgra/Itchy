@@ -6,28 +6,26 @@
 namespace GitVersionNumbers
 {
     using System;
-    using System.Collections.Generic;
-    using System.Diagnostics;
-    using System.IO;
+    using System.Globalization;
     using System.Linq;
-    using System.Text;
-    using GitSharp;
+    using System.Text.RegularExpressions;
+    using LibGit2Sharp;
 
     /// <summary>
     /// Get the information from GIT
     /// </summary>
     public class GitEmulation
     {
-        #region globals
+        #region Fields
 
         /// <summary>
         /// git information structure
         /// </summary>
-        private GitInformation gi = new GitInformation();
+        private readonly GitInformation gitInfo = new GitInformation();
 
         #endregion
 
-        #region constructors
+        #region Constructors
 
         /// <summary>
         /// Initializes a new instance of the GitEmulation class.
@@ -47,7 +45,7 @@ namespace GitVersionNumbers
 
         #endregion
 
-        #region properties
+        #region Properties
 
         /// <summary>
         /// Gets or sets the project directory to process
@@ -60,7 +58,7 @@ namespace GitVersionNumbers
 
         #endregion
 
-        #region public methods
+        #region Methods
         
         /// <summary>
         /// Load the Git Information
@@ -68,112 +66,92 @@ namespace GitVersionNumbers
         /// <returns>Git Information values</returns>
         public GitInformation GitInfo()
         {
-            Git.DefaultGitDirectory = this.SolutionDirectory;
-            Git.DefaultRepository = new Repository(this.SolutionDirectory);
-            this.GitLog();
-            this.GitDescribe();
-            this.GitBranch();
-            this.GitModifications();
-            return this.gi;
+            using (var repo = new Repository(this.SolutionDirectory, null))
+            {
+                this.GitLog(repo);
+                this.GitDescribe(repo);
+                this.GitBranch(repo);
+                this.GitModifications(repo);
+                return this.gitInfo;
+            }
         }
-
-        #endregion
-
-        #region private methods
 
         /// <summary>
         /// Get the last log entrys shaw number and date submitted
         /// </summary>
-        private void GitLog()
+        private void GitLog(IRepository repo)
         {
-            this.gi.LastCommitHash = Git.DefaultRepository.Head.CurrentCommit.Hash;
-            this.gi.LastCommitDate = Git.DefaultRepository.Head.CurrentCommit.AuthorDate.DateTime;
+            this.gitInfo.LastCommitHash = repo.Head.Tip.Sha;
+            this.gitInfo.LastCommitDate = repo.Head.Tip.Committer.When.LocalDateTime;
         }
 
         /// <summary>
         /// get the version number from describe
         /// </summary>
-        private void GitDescribe()
+        private void GitDescribe(IRepository repo)
         {
-            int totalCommitNumber = Git.DefaultRepository.Head.CurrentCommit.Ancestors.Count();
+            var commits = repo.Head.Commits.ToList();
+            var tags = repo.Tags;
 
-            this.gi.Version = "0.0.0." + totalCommitNumber.ToString();
-            string info = this.ExecuteCommand("git describe --tags --long --match [0-9].[0-9].[0-9]");
-            string[] infoSplit = info.Split(new char[] { '|', '-', ',', '\n' });
-            if (infoSplit.Count() >= 2)
+            this.gitInfo.Version = "0.0.0." + commits.Count().ToString(CultureInfo.InvariantCulture);
+
+            var versionTags = tags.Where(t => Regex.IsMatch(t.Name, @"^\d+\.\d+\.\d+$")).ToList();
+            int steps = 0;
+            if (versionTags.Any())
             {
-                this.gi.Version = infoSplit[0].ToString() + "." + infoSplit[1].ToString();
+                foreach (var commit in commits)
+                {
+                    var tag = versionTags.FirstOrDefault(t => t.Target.Sha == commit.Sha);
+                    if (null != tag)
+                    {
+                        this.gitInfo.Version = tag.Name + "." + steps.ToString(CultureInfo.InvariantCulture);
+                        break;
+                    }
+
+                    steps++;
+                }
             }
 
-            info = this.ExecuteCommand("git describe --tags --long --match CN*");
-            infoSplit = info.Split(new char[] { '|', '-', ',', '\n' });
-            if (infoSplit.Count() >= 2)
+            versionTags = tags.Where(t => Regex.IsMatch(t.Name, @"^CN.*$")).ToList();
+            steps = 0;
+            if (versionTags.Any())
             {
-                int commitNumber = int.Parse(infoSplit[0].Replace("CN", "")) + int.Parse(infoSplit[1]);
-                this.gi.CommitNumber = commitNumber.ToString();
+                foreach (var commit in commits)
+                {
+                    var tag = versionTags.FirstOrDefault(t => t.Target.Sha == commit.Sha);
+                    if (null != tag)
+                    {
+                        this.gitInfo.CommitNumber =
+                            (int.Parse(tag.Name.Replace("CN", "")) + steps).ToString(CultureInfo.InvariantCulture);
+                        break;
+                    }
+
+                    steps++;
+                }
             }
-            else
+
+            if (string.IsNullOrEmpty(this.gitInfo.CommitNumber))
             {
-                this.gi.CommitNumber = totalCommitNumber.ToString();
+                this.gitInfo.CommitNumber = commits.Count().ToString(CultureInfo.InvariantCulture);
             }
         }
 
         /// <summary>
         /// get the name of the branch the project is using
         /// </summary>
-        private void GitBranch()
+        private void GitBranch(IRepository repo)
         {
-            this.gi.BranchName = Git.DefaultRepository.CurrentBranch.Name;
+            this.gitInfo.BranchName = repo.Head.Name;
         }
 
         /// <summary>
         /// Get a value indicating if there are modifications in the current working directory.
         /// </summary>
-        private void GitModifications()
+        private void GitModifications(IRepository repo)
         {
-            RepositoryStatus status = Git.DefaultRepository.Status;
-            this.gi.Modifications = Convert.ToBoolean(status.Added.Count() + status.Missing.Count() + status.Modified.Count() +
+            var status = repo.Index.RetrieveStatus();
+            this.gitInfo.Modifications = Convert.ToBoolean(status.Added.Count() + status.Missing.Count() + status.Modified.Count() +
                 status.Removed.Count() + status.Staged.Count());
-        }
-
-        /// <summary>
-        /// execute the git command and return the results
-        /// </summary>
-        /// <param name="command">command to execute</param>
-        /// <returns>output stream as a string</returns>
-        private string ExecuteCommand(string command)
-        {
-            if (!Directory.Exists(this.SolutionDirectory))
-            {
-                Console.WriteLine("Invalid Project Directory " + this.SolutionDirectory);
-                return string.Empty;
-                ////throw new Exception("Invalid Project Directory " + this.SolutionDirectory);
-            }
-
-            Process p = new Process();
-
-            p.StartInfo.WorkingDirectory = this.SolutionDirectory;
-            p.StartInfo.FileName = "cmd.exe";
-            p.StartInfo.Arguments = "/c " + command;
-
-            // Redirect the output stream of the child process.  
-            p.StartInfo.UseShellExecute = false;
-            p.StartInfo.RedirectStandardOutput = true;
-            p.Start();
-            p.WaitForExit();
-
-            string output = p.StandardOutput.ReadToEnd();
-            string[] splits = output.Split(new char[] { '\r', '\n' });
-            output = string.Empty;
-            foreach (string split in splits)
-            {
-                if (!split.StartsWith(@"C:\"))
-                {
-                    output += split + "\r\n";
-                }
-            }
-
-            return output.Trim();
         }
 
         #endregion

@@ -6,10 +6,7 @@
 namespace GitVersionNumbers
 {
     using System;
-    using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
-    using System.Text;
     using System.Text.RegularExpressions;
 
     /// <summary>
@@ -76,17 +73,13 @@ namespace GitVersionNumbers
             {
                 Console.WriteLine("Did not send project path or git info to UpdateAssembly");
                 return;
-                ////throw new Exception("Did not send project path or git info to UpdateAssembly");
             }
 
-            string outputFile = string.Empty; // ouput file
-            string inputFile = string.Empty; // input file
-            string backupFile = string.Empty; // backup file name
-            string inputContents = string.Empty; // input file contents
+            string inputContents;
+            string inputFile = this.ProjectPath + ".git";
+            string outputFile = this.ProjectPath;
+            string backupFile = this.ProjectPath + ".bak";
 
-            inputFile = this.ProjectPath + ".git";
-            outputFile = this.ProjectPath;
-            backupFile = this.ProjectPath + ".bak";
             if (!File.Exists(inputFile))
             {
                 return;
@@ -134,8 +127,10 @@ namespace GitVersionNumbers
             Console.WriteLine("     GITCOMMITNUMBER = " + this.GitInfo.CommitNumber.Trim());
             Console.WriteLine("     GITMODS         = " + this.GitInfo.Modifications);
 
-            string pattern = @"\$GITMODS\?(.+):(.+)\$";
+            const string pattern = @"\$GITMODS\?(.+):(.+)\$";
             MatchCollection matches = Regex.Matches(inputContents, pattern);
+
+            // ReSharper disable LoopCanBeConvertedToQuery
             foreach (Match match in matches)
             {
                 inputContents = inputContents.Replace(
@@ -143,6 +138,7 @@ namespace GitVersionNumbers
                     this.GitInfo.Modifications ? match.Groups[1].Value : match.Groups[2].Value);
             }
 
+            // ReSharper restore LoopCanBeConvertedToQuery
             inputContents = inputContents.Replace("$GITBRANCHNAME$", this.GitInfo.BranchName.Trim());
             inputContents = inputContents.Replace("$GITCOMMITDATE$", this.GitInfo.LastCommitDate.ToShortDateString());
             inputContents = inputContents.Replace("$GITHASH$", this.GitInfo.LastCommitHash.Trim());
@@ -159,8 +155,6 @@ namespace GitVersionNumbers
             {
                 Console.WriteLine("Can Not Write Output to " + outputFile);
                 Console.WriteLine(ex.ToString());
-                return;
-                ////throw new Exception("Can Not Write Output to " + outputFile, ex);
             }
         }
 

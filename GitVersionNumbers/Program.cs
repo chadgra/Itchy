@@ -6,10 +6,8 @@
 namespace GitVersionNumbers
 {
     using System;
-    using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using System.Text;
 
     /// <summary>
     /// main program
@@ -77,11 +75,11 @@ namespace GitVersionNumbers
                 ////throw new Exception("Invalid Solution Directory " + solutionDirectory);
             }
 
-            GitVersionNumbers.GitEmulation git = new GitEmulation(solutionDirectory);
+            var git = new GitEmulation(solutionDirectory);
             GitInformation info = git.GitInfo();
             if (!String.IsNullOrEmpty(info.Version) && !String.IsNullOrEmpty(info.LastCommitHash))
             {
-                ChangeAssemblyInfo change = new ChangeAssemblyInfo(projectDirectory, info);
+                var change = new ChangeAssemblyInfo(projectDirectory, info);
                 change.UpdateAssembly();
             }
         }       
