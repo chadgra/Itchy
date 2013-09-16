@@ -127,7 +127,7 @@ namespace GitVersionNumbers
             Console.WriteLine("     GITCOMMITNUMBER = " + this.GitInfo.CommitNumber.Trim());
             Console.WriteLine("     GITMODS         = " + this.GitInfo.Modifications);
 
-            const string pattern = @"\$GITMODS\?(.+):(.+)\$";
+            const string pattern = @"\$GITMODS\?(.*):(.*)\$";
             MatchCollection matches = Regex.Matches(inputContents, pattern);
 
             // ReSharper disable LoopCanBeConvertedToQuery

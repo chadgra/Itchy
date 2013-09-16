@@ -107,7 +107,8 @@
   </Target>
   -->
   <PropertyGroup>
-    <PreBuildEvent>COPY "$(SolutionDir)LibGit2Sharp\git2-bd67979.dll" "$(TargetDir)"</PreBuildEvent>
+    <PreBuildEvent>"$(TargetPath)"  -s "$(SolutionDir) " -f "$(ProjectDir)Properties\AssemblyInfo.cs"
+COPY "$(SolutionDir)LibGit2Sharp\git2-bd67979.dll" "$(TargetDir)"</PreBuildEvent>
     <PostBuildEvent>
     </PostBuildEvent>
   </PropertyGroup>

@@ -16,7 +16,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyCompany("Torion")]
 [assembly: AssemblyProduct("GitVersionNumbers")]
 [assembly: AssemblyCopyright("Copyright © Torion 2011")]
-[assembly: AssemblyTrademark("$GITHASH$")]
+[assembly: AssemblyTrademark("$GITHASH$$GITMODS?-dirty:$")]
 [assembly: AssemblyCulture("")]
 
 // Setting ComVisible to false makes the types in this assembly not visible 

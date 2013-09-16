@@ -93,7 +93,7 @@ namespace GitVersionNumbers
             var commits = repo.Head.Commits.ToList();
             var tags = repo.Tags;
 
-            this.gitInfo.Version = "0.0.0." + commits.Count().ToString(CultureInfo.InvariantCulture);
+            this.gitInfo.Version = "0.0.0." + (commits.Count() - 1).ToString(CultureInfo.InvariantCulture);
 
             var versionTags = tags.Where(t => Regex.IsMatch(t.Name, @"^\d+\.\d+\.\d+$")).ToList();
             int steps = 0;

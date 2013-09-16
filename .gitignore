@@ -10,3 +10,4 @@ _ReSharper*/
 *.bak
 *.DotSettings
 Thumbs.db
+/GitVersionNumbers/Properties/AssemblyInfo.cs
