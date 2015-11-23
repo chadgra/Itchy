@@ -6,6 +6,7 @@
 namespace GitVersionNumbers
 {
     using System;
+    using System.Globalization;
     using System.IO;
     using System.Text.RegularExpressions;
 
@@ -125,17 +126,18 @@ namespace GitVersionNumbers
             Console.WriteLine("     GITHASH         = " + this.GitInfo.LastCommitHash.Trim());
             Console.WriteLine("     GITVERSION      = " + this.GitInfo.Version.Trim());
             Console.WriteLine("     GITCOMMITNUMBER = " + this.GitInfo.CommitNumber.Trim());
-            Console.WriteLine("     GITMODS         = " + this.GitInfo.Modifications);
+            Console.WriteLine("     GITMODS         = " + this.GitInfo.HasModifications);
+            Console.WriteLine("     GITMODCOUNT     = " + this.GitInfo.Changes);
 
-            const string pattern = @"\$GITMODS\?(.*):(.*)\$";
-            MatchCollection matches = Regex.Matches(inputContents, pattern);
+            const string Pattern = @"\$GITMODS\?(.*):(.*)\$";
+            var matches = Regex.Matches(inputContents, Pattern);
 
             // ReSharper disable LoopCanBeConvertedToQuery
             foreach (Match match in matches)
             {
                 inputContents = inputContents.Replace(
                     match.Value,
-                    this.GitInfo.Modifications ? match.Groups[1].Value : match.Groups[2].Value);
+                    this.GitInfo.HasModifications ? match.Groups[1].Value : match.Groups[2].Value);
             }
 
             // ReSharper restore LoopCanBeConvertedToQuery
@@ -144,6 +146,7 @@ namespace GitVersionNumbers
             inputContents = inputContents.Replace("$GITHASH$", this.GitInfo.LastCommitHash.Trim());
             inputContents = inputContents.Replace("$GITVERSION$", this.GitInfo.Version.Trim());
             inputContents = inputContents.Replace("$GITCOMMITNUMBER$", this.GitInfo.CommitNumber.Trim());
+            inputContents = inputContents.Replace("$GITMODCOUNT$", this.GitInfo.Changes.ToString(CultureInfo.InvariantCulture));
             inputContents = inputContents.Replace("$GITBUILDDATE$", DateTime.Now.ToShortDateString());
 
             // write out the changes

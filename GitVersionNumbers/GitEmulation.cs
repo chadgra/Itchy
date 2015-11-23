@@ -66,7 +66,7 @@ namespace GitVersionNumbers
         /// <returns>Git Information values</returns>
         public GitInformation GitInfo()
         {
-            using (var repo = new Repository(this.SolutionDirectory, null))
+            using (var repo = new Repository(this.SolutionDirectory))
             {
                 this.GitLog(repo);
                 this.GitDescribe(repo);
@@ -86,18 +86,19 @@ namespace GitVersionNumbers
         }
 
         /// <summary>
-        /// get the version number from describe
+        /// Get the version number from describe
         /// </summary>
         private void GitDescribe(IRepository repo)
         {
             var commits = repo.Head.Commits.ToList();
             var tags = repo.Tags;
 
-            this.gitInfo.Version = "0.0.0." + (commits.Count() - 1).ToString(CultureInfo.InvariantCulture);
+            this.gitInfo.Version = "0.0.0" + (commits.Count - 1).ToString(CultureInfo.InvariantCulture);
 
             var versionTags = tags.Where(t => Regex.IsMatch(t.Name, @"^\d+\.\d+\.\d+$")).ToList();
-            int steps = 0;
-            if (versionTags.Any())
+            var newVersionTags = tags.Where(t => Regex.IsMatch(t.Name, @"^\d+\.\d+$")).ToList();
+            var steps = 0;
+            if (versionTags.Any() || newVersionTags.Any())
             {
                 foreach (var commit in commits)
                 {
@@ -105,6 +106,13 @@ namespace GitVersionNumbers
                     if (null != tag)
                     {
                         this.gitInfo.Version = tag.Name + "." + steps.ToString(CultureInfo.InvariantCulture);
+                        break;
+                    }
+
+                    var newTag = newVersionTags.FirstOrDefault(t => t.Target.Sha == commit.Sha);
+                    if (null != newTag)
+                    {
+                        this.gitInfo.Version = newTag.Name + "." + steps.ToString(CultureInfo.InvariantCulture);
                         break;
                     }
 
@@ -132,7 +140,7 @@ namespace GitVersionNumbers
 
             if (string.IsNullOrEmpty(this.gitInfo.CommitNumber))
             {
-                this.gitInfo.CommitNumber = commits.Count().ToString(CultureInfo.InvariantCulture);
+                this.gitInfo.CommitNumber = commits.Count.ToString(CultureInfo.InvariantCulture);
             }
         }
 
@@ -149,9 +157,15 @@ namespace GitVersionNumbers
         /// </summary>
         private void GitModifications(IRepository repo)
         {
-            var status = repo.Index.RetrieveStatus();
-            this.gitInfo.Modifications = Convert.ToBoolean(status.Added.Count() + status.Missing.Count() + status.Modified.Count() +
-                status.Removed.Count() + status.Staged.Count());
+            var status = repo.RetrieveStatus(new StatusOptions());
+            this.gitInfo.Added = status.Added.Count();
+            this.gitInfo.Missing = status.Missing.Count();
+            this.gitInfo.Modified = status.Modified.Count();
+            this.gitInfo.Removed = status.Removed.Count();
+            this.gitInfo.Staged = status.Staged.Count();
+            this.gitInfo.Changes = this.gitInfo.Added + this.gitInfo.Missing + this.gitInfo.Modified
+                                   + this.gitInfo.Removed + this.gitInfo.Staged;
+            this.gitInfo.HasModifications = Convert.ToBoolean(this.gitInfo.Changes);
         }
 
         #endregion
