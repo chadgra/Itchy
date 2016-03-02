@@ -129,15 +129,28 @@ namespace GitVersionNumbers
             Console.WriteLine("     GITMODS         = " + this.GitInfo.HasModifications);
             Console.WriteLine("     GITMODCOUNT     = " + this.GitInfo.Changes);
 
-            const string Pattern = @"\$GITMODS\?(.*):(.*)\$";
-            var matches = Regex.Matches(inputContents, Pattern);
-
             // ReSharper disable LoopCanBeConvertedToQuery
+            const string ModsPattern = @"\$GITMODS\?(.*):(.*)\$";
+            var matches = Regex.Matches(inputContents, ModsPattern);
+
             foreach (Match match in matches)
             {
                 inputContents = inputContents.Replace(
                     match.Value,
                     this.GitInfo.HasModifications ? match.Groups[1].Value : match.Groups[2].Value);
+            }
+
+            const string HashPattern = @"\$GITHASH(\d+)\$";
+            matches = Regex.Matches(inputContents, HashPattern);
+
+            foreach (Match match in matches)
+            {
+                var length = int.Parse(match.Groups[1].Value);
+                length = Math.Max(0, length);
+                length = Math.Min(length, this.GitInfo.LastCommitHash.Trim().Length);
+                inputContents = inputContents.Replace(
+                    match.Value,
+                    this.GitInfo.LastCommitHash.Trim().Substring(0, length));
             }
 
             // ReSharper restore LoopCanBeConvertedToQuery

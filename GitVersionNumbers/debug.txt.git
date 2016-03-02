@@ -1,0 +1,15 @@
+BranchName      = $GITBRANCHNAME$
+CommitDate      = $GITCOMMITDATE$
+BuildDate       = $GITBUILDDATE$
+Hash            = $GITHASH$
+Hash-5          = $GITHASH-5$
+Hash0           = $GITHASH0$
+Hash7           = $GITHASH7$
+Hash9           = $GITHASH9$
+Hash40          = $GITHASH40$
+Hash41          = $GITHASH41$
+HashQ           = $GITHASHQ$
+Version         = $GITVERSION$
+CommitNumber    = $GITCOMMITNUMBER$
+Mods            = $GITMODS?yes:no$
+ModCount        = $GITMODCOUNT$
