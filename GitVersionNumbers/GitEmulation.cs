@@ -95,8 +95,8 @@ namespace GitVersionNumbers
 
             this.gitInfo.Version = "0.0.0" + (commits.Count - 1).ToString(CultureInfo.InvariantCulture);
 
-            var versionTags = tags.Where(t => Regex.IsMatch(t.Name, @"^\d+\.\d+\.\d+$")).ToList();
-            var newVersionTags = tags.Where(t => Regex.IsMatch(t.Name, @"^\d+\.\d+$")).ToList();
+            var versionTags = tags.Where(t => Regex.IsMatch(t.FriendlyName, @"^\d+\.\d+\.\d+$")).ToList();
+            var newVersionTags = tags.Where(t => Regex.IsMatch(t.FriendlyName, @"^\d+\.\d+$")).ToList();
             var steps = 0;
             if (versionTags.Any() || newVersionTags.Any())
             {
@@ -105,14 +105,14 @@ namespace GitVersionNumbers
                     var tag = versionTags.FirstOrDefault(t => t.Target.Sha == commit.Sha);
                     if (null != tag)
                     {
-                        this.gitInfo.Version = tag.Name + "." + steps.ToString(CultureInfo.InvariantCulture);
+                        this.gitInfo.Version = tag.FriendlyName + "." + steps.ToString(CultureInfo.InvariantCulture);
                         break;
                     }
 
                     var newTag = newVersionTags.FirstOrDefault(t => t.Target.Sha == commit.Sha);
                     if (null != newTag)
                     {
-                        this.gitInfo.Version = newTag.Name + "." + steps.ToString(CultureInfo.InvariantCulture);
+                        this.gitInfo.Version = newTag.FriendlyName + "." + steps.ToString(CultureInfo.InvariantCulture);
                         break;
                     }
 
@@ -120,7 +120,7 @@ namespace GitVersionNumbers
                 }
             }
 
-            versionTags = tags.Where(t => Regex.IsMatch(t.Name, @"^CN.*$")).ToList();
+            versionTags = tags.Where(t => Regex.IsMatch(t.FriendlyName, @"^CN.*$")).ToList();
             steps = 0;
             if (versionTags.Any())
             {
@@ -130,7 +130,7 @@ namespace GitVersionNumbers
                     if (null != tag)
                     {
                         this.gitInfo.CommitNumber =
-                            (int.Parse(tag.Name.Replace("CN", "")) + steps).ToString(CultureInfo.InvariantCulture);
+                            (int.Parse(tag.FriendlyName.Replace("CN", "")) + steps).ToString(CultureInfo.InvariantCulture);
                         break;
                     }
 
@@ -149,7 +149,7 @@ namespace GitVersionNumbers
         /// </summary>
         private void GitBranch(IRepository repo)
         {
-            this.gitInfo.BranchName = repo.Head.Name;
+            this.gitInfo.BranchName = repo.Head.FriendlyName;
         }
 
         /// <summary>
