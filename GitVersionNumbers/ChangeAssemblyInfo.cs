@@ -15,10 +15,11 @@ namespace GitVersionNumbers
     /// </summary>
     public class ChangeAssemblyInfo
     {
-        #region fields
+        #region Fields
+
         #endregion
 
-        #region constructor
+        #region Constructor
 
         /// <summary>
         /// Initializes a new instance of the ChangeAssemblyInfo class.
@@ -30,22 +31,22 @@ namespace GitVersionNumbers
         /// <summary>
         /// Initializes a new instance of the ChangeAssemblyInfo class.
         /// </summary>
-        /// <param name="projectPath">Directory name of the project</param>
+        /// <param name="filePath">Directory name of the project</param>
         /// <param name="gitInfo">information from git</param>
-        public ChangeAssemblyInfo(string projectPath, GitInformation gitInfo)
+        public ChangeAssemblyInfo(string filePath, GitInformation gitInfo)
         {
-            this.ProjectPath = projectPath;
+            this.FilePath = filePath;
             this.GitInfo = gitInfo;
         }
 
         #endregion
 
-        #region properties
+        #region Properties
         
         /// <summary>
-        /// Gets or sets the project path
+        /// Gets or sets the file path
         /// </summary>
-        public string ProjectPath
+        public string FilePath
         {
             get;
             set;
@@ -62,62 +63,73 @@ namespace GitVersionNumbers
 
         #endregion
 
-        #region public methods
+        #region Public Methods
         
         /// <summary>
-        /// update the assembly
+        /// Update the assembly
         /// </summary>
-        public void UpdateAssembly()
+        /// <param name="shouldRenameFile">True if the file name should be modified, instead of the file contents.</param>
+        /// <param name="shouldCopyFile">True if the file name should be copied instead of moved (only valid if 'shouldRenameFile' is True.</param>
+        public void UpdateAssembly(bool shouldRenameFile, bool shouldCopyFile)
         {
             // do we have the values needed?
-            if (string.IsNullOrEmpty(this.ProjectPath) || (this.GitInfo == null))
+            if (string.IsNullOrEmpty(this.FilePath) || (this.GitInfo == null))
             {
                 Console.WriteLine("Did not send project path or git info to UpdateAssembly");
                 return;
             }
 
             string inputContents;
-            string inputFile = this.ProjectPath + ".git";
-            string outputFile = this.ProjectPath;
-            string backupFile = this.ProjectPath + ".bak";
+            var inputFile = string.Empty;
+            var outputFile = string.Empty;
+            var backupFile = string.Empty;
 
-            if (!File.Exists(inputFile))
+            if (shouldRenameFile)
             {
-                return;
+                inputContents = this.FilePath;
             }
-
-            // backup the existing file
-            if (File.Exists(outputFile))
+            else
             {
+                inputFile = this.FilePath.EndsWith(".git") ? this.FilePath : this.FilePath + ".git";
+                outputFile = inputFile.Remove(inputFile.Length - ".git".Length);
+                backupFile = outputFile + ".bak";
+
+                if (!File.Exists(inputFile))
+                {
+                    return;
+                }
+
+                // backup the existing file
+                if (File.Exists(outputFile))
+                {
+                    try
+                    {
+                        if (File.Exists(backupFile))
+                        {
+                            File.Delete(backupFile);
+                        }
+
+                        File.Move(outputFile, backupFile);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Can Not Create Backup File " + backupFile);
+                        Console.WriteLine(ex.ToString());
+                        return;
+                    }
+                }
+
+                // read the input file
                 try
                 {
-                    if (File.Exists(backupFile))
-                    {
-                        File.Delete(backupFile);
-                    }
-
-                    File.Move(outputFile, backupFile);
+                    inputContents = File.ReadAllText(inputFile);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Can Not Create Backup File " + backupFile);
+                    Console.WriteLine("Can Not Read " + inputFile);
                     Console.WriteLine(ex.ToString());
                     return;
-                    ////throw new Exception("Can Not Create Backup File " + backupFile, ex);
                 }
-            }
-
-            // read the input file
-            try
-            {
-                inputContents = File.ReadAllText(inputFile);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Can Not Read " + inputFile);
-                Console.WriteLine(ex.ToString());
-                return;
-                ////throw new Exception("Can Not Read " + inputFile, ex);
             }
 
             // replace the tags
@@ -130,6 +142,7 @@ namespace GitVersionNumbers
             Console.WriteLine("     GITMODCOUNT     = " + this.GitInfo.Changes);
 
             // ReSharper disable LoopCanBeConvertedToQuery
+            // Look for GITMODS in input.
             const string ModsPattern = @"\$GITMODS\?(.*):(.*)\$";
             var matches = Regex.Matches(inputContents, ModsPattern);
 
@@ -140,6 +153,7 @@ namespace GitVersionNumbers
                     this.GitInfo.HasModifications ? match.Groups[1].Value : match.Groups[2].Value);
             }
 
+            // Look for GITHASH in input.
             const string HashPattern = @"\$GITHASH(\d+)\$";
             matches = Regex.Matches(inputContents, HashPattern);
 
@@ -153,6 +167,19 @@ namespace GitVersionNumbers
                     this.GitInfo.LastCommitHash.Trim().Substring(0, length));
             }
 
+            // Look for GITVERSION in input.
+            const string VersionPattern = @"\$GITVERSION(.*?)\$";
+            matches = Regex.Matches(inputContents, VersionPattern);
+
+            foreach (Match match in matches)
+            {
+                var separator = match.Groups[1].Value;
+                separator = string.IsNullOrEmpty(separator) ? "." : separator;
+                inputContents = inputContents.Replace(
+                    match.Value,
+                    this.GitInfo.Version.Trim().Replace(".", separator));
+            }
+
             // ReSharper restore LoopCanBeConvertedToQuery
             inputContents = inputContents.Replace("$GITBRANCHNAME$", this.GitInfo.BranchName.Trim());
             inputContents = inputContents.Replace("$GITCOMMITDATE$", this.GitInfo.LastCommitDate.ToShortDateString());
@@ -162,21 +189,47 @@ namespace GitVersionNumbers
             inputContents = inputContents.Replace("$GITMODCOUNT$", this.GitInfo.Changes.ToString(CultureInfo.InvariantCulture));
             inputContents = inputContents.Replace("$GITBUILDDATE$", DateTime.Now.ToShortDateString());
 
-            // write out the changes
-            try
+            if (shouldRenameFile)
             {
-                File.WriteAllText(outputFile, inputContents);
+                if (this.FilePath == inputContents)
+                {
+                    Console.WriteLine("No valid tokens in file name {0}, are you sure -rename (-rn) should be specified?", this.FilePath);
+                    return;
+                }
+
+                if (File.Exists(inputContents))
+                {
+                    File.Delete(inputContents);
+                }
+
+                if (shouldCopyFile)
+                {
+                    File.Copy(this.FilePath, inputContents);
+                }
+                else
+                {
+                    File.Move(this.FilePath, inputContents);
+                }
             }
-            catch (Exception ex)
+            else
             {
-                Console.WriteLine("Can Not Write Output to " + outputFile);
-                Console.WriteLine(ex.ToString());
+                // write out the changes
+                try
+                {
+                    File.WriteAllText(outputFile, inputContents);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Can Not Write Output to " + outputFile);
+                    Console.WriteLine(ex.ToString());
+                }
             }
         }
 
         #endregion
 
-        #region private methods
+        #region Private Methods
+
         #endregion
     }
 }

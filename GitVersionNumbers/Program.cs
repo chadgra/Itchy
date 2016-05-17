@@ -32,55 +32,53 @@ namespace GitVersionNumbers
             {
                 Console.WriteLine("Missing Main Project and Solution Directory Name");
                 return;
-                ////throw new Exception("Missing Main Project and Solution Directory Name");
             }
 
             // walk the arguments and see if we can get the project and solution values
             string solutionDirectory = string.Empty;
-            string projectDirectory = string.Empty;
+            string filePath = string.Empty;
+            bool shouldRenameFile = false;
+            bool shouldCopyFile = false;
             for (int i = 0; i < args.Count(); i++)
             {
-                if (args[i].Contains("-s") || args[i].Contains("-S"))
+                var arg1 = args[i].ToUpper().Trim();
+                var arg2 = args.Length > (i + 1) ? args[i + 1].Trim() : string.Empty;
+
+                switch (arg1)
                 {
-                    if (args[i].Length > 2)
-                    {
-                        // incase the value was passed like -sC:\projects
-                        solutionDirectory = args[i].Substring(2, (args[i].Length - 2)).Trim();
-                    }
-                    else if (args.Count() > (i + 1))
-                    {
-                        solutionDirectory = args[(i + 1)].Trim();
-                    }
-                }
-                else if (args[i].Contains("-f") || args[i].Contains("-F"))
-                {
-                    if (args[i].Length > 2)
-                    {
-                        // incase the value was passed like -phomer
-                        projectDirectory = args[i].Substring(2, (args[i].Length - 2)).Trim();
-                    }
-                    else if (args.Count() > (i + 1))
-                    {
-                        projectDirectory = args[(i + 1)].Trim();
-                    }
+                    case "-S":
+                    case "-SOLUTION":
+                        solutionDirectory = arg2;
+                        break;
+                    case "-F":
+                    case "-FILE":
+                        filePath = arg2;
+                        break;
+                    case "-RN":
+                    case "-RENAME":
+                        shouldRenameFile = true;
+                        break;
+                    case "-C":
+                    case "-COPY":
+                        shouldCopyFile = true;
+                        break;
                 }
             }
 
             Console.WriteLine("     Using Solution: " + solutionDirectory);
-            Console.WriteLine("     Changing File:  " + projectDirectory);
+            Console.WriteLine("     Changing File:  " + filePath);
             if (!Directory.Exists(solutionDirectory))
             {
                 Console.WriteLine("Invalid Solution Directory " + solutionDirectory);
                 return;
-                ////throw new Exception("Invalid Solution Directory " + solutionDirectory);
             }
 
             var git = new GitEmulation(solutionDirectory);
             GitInformation info = git.GitInfo();
             if (!String.IsNullOrEmpty(info.Version) && !String.IsNullOrEmpty(info.LastCommitHash))
             {
-                var change = new ChangeAssemblyInfo(projectDirectory, info);
-                change.UpdateAssembly();
+                var change = new ChangeAssemblyInfo(filePath, info);
+                change.UpdateAssembly(shouldRenameFile, shouldCopyFile);
             }
         }       
     }
