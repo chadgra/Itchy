@@ -64,7 +64,18 @@ namespace GitVersionNumbers
         #endregion
 
         #region Public Methods
-        
+
+        /// <summary>
+        /// Add the characters that make this a token to the beginning and end of the string.
+        /// </summary>
+        /// <param name="value">The string that should become a token.</param>
+        /// <returns>The original string with characters that make it a token before and after.</returns>
+        public static string AsToken(string value)
+        {
+            string keyCharacters = "[!@#$%^&*]";
+            return keyCharacters + value + keyCharacters;
+        }
+
         /// <summary>
         /// Update the assembly
         /// </summary>
@@ -143,7 +154,7 @@ namespace GitVersionNumbers
 
             // ReSharper disable LoopCanBeConvertedToQuery
             // Look for GITMODS in input.
-            const string ModsPattern = @"\$GITMODS\?(.*):(.*)\$";
+            string ModsPattern = AsToken("GITMODS\\?(.*):(.*)");
             var matches = Regex.Matches(inputContents, ModsPattern);
 
             foreach (Match match in matches)
@@ -154,7 +165,7 @@ namespace GitVersionNumbers
             }
 
             // Look for GITHASH in input.
-            const string HashPattern = @"\$GITHASH(\d+)\$";
+            string HashPattern = AsToken("GITHASH(\\d+)");
             matches = Regex.Matches(inputContents, HashPattern);
 
             foreach (Match match in matches)
@@ -168,7 +179,7 @@ namespace GitVersionNumbers
             }
 
             // Look for GITVERSION in input.
-            const string VersionPattern = @"\$GITVERSION(.*?)\$";
+            string VersionPattern = AsToken("GITVERSION(.*?)");
             matches = Regex.Matches(inputContents, VersionPattern);
 
             foreach (Match match in matches)
@@ -181,13 +192,13 @@ namespace GitVersionNumbers
             }
 
             // ReSharper restore LoopCanBeConvertedToQuery
-            inputContents = inputContents.Replace("$GITBRANCHNAME$", this.GitInfo.BranchName.Trim());
-            inputContents = inputContents.Replace("$GITCOMMITDATE$", this.GitInfo.LastCommitDate.ToShortDateString());
-            inputContents = inputContents.Replace("$GITHASH$", this.GitInfo.LastCommitHash.Trim());
-            inputContents = inputContents.Replace("$GITVERSION$", this.GitInfo.Version.Trim());
-            inputContents = inputContents.Replace("$GITCOMMITNUMBER$", this.GitInfo.CommitNumber.Trim());
-            inputContents = inputContents.Replace("$GITMODCOUNT$", this.GitInfo.Changes.ToString(CultureInfo.InvariantCulture));
-            inputContents = inputContents.Replace("$GITBUILDDATE$", DateTime.Now.ToShortDateString());
+            inputContents = Regex.Replace(inputContents, AsToken("GITBRANCHNAME"), this.GitInfo.BranchName.Trim());
+            inputContents = Regex.Replace(inputContents, AsToken("GITCOMMITDATE"), this.GitInfo.LastCommitDate.ToShortDateString());
+            inputContents = Regex.Replace(inputContents, AsToken("GITHASH"), this.GitInfo.LastCommitHash.Trim());
+            inputContents = Regex.Replace(inputContents, AsToken("GITVERSION"), this.GitInfo.Version.Trim());
+            inputContents = Regex.Replace(inputContents, AsToken("GITCOMMITNUMBER"), this.GitInfo.CommitNumber.Trim());
+            inputContents = Regex.Replace(inputContents, AsToken("GITMODCOUNT"), this.GitInfo.Changes.ToString(CultureInfo.InvariantCulture));
+            inputContents = Regex.Replace(inputContents, AsToken("GITBUILDDATE"), DateTime.Now.ToShortDateString());
 
             if (shouldRenameFile)
             {
